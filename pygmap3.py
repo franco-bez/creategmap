@@ -10,7 +10,7 @@ __maintainer__ = "Bernd Weigelt, Jonas Stein"
 __email__ = "weigelt.bernd@web.de"
 __status__ = "preAlpha"
 
-""" 
+"""
   ===========VORSICHT ALPHA-STADIUM=================
   pygmap3.py, das script um ein gmapsupp.img für GARMIN-Navigationsgeräte
   zu erzeugen, z.B. Garmin eTrex Vista Hcx
@@ -18,28 +18,28 @@ __status__ = "preAlpha"
   und als QCO Dschuwa
 
   License GPL
-  
+
   Work in progress, bitte beachten!
-  Prinzipiell funktioniert es, aber wenn was kaputt geht, 
+  Prinzipiell funktioniert es, aber wenn was kaputt geht,
   lehnen wir jegliche Haftung ab.
-  
-  
+
+
   Folgende Software wird benutzt:
-  
-  mkgmap von 
+
+  mkgmap von
   http://wiki.openstreetmap.org/wiki/Mkgmap
   http://www.mkgmap.org.uk/snapshots/mkgmap-latest.tar.gz
- 
+
   gmaptool von
   http://www.anpo.republika.pl/download.html
   gmt.exe
- 
+
   splitter von
   http://www.mkgmap.org.uk/page/tile-splitter
-  splitter.jar 
- 
+  splitter.jar
+
   osbsql2osm
-  erstellt aus Sourcen 
+  erstellt aus Sourcen
   http://tuxcode.org/john/osbsql2osm/osbsql2osm-latest.tar.gz
 """
 
@@ -52,18 +52,18 @@ import tarfile
 # DEFs =============================================================================
 
 def printinfo(msg):
-    print(("II: " + msg))
+    print(("II: \033[1;32m" + msg +"\033[0m"))
 
 def printwarning(msg):
-    print(("WW: " + msg))
+    print(("WW: \033[1;33m" + msg +"\033[0m"))
 
 def printerror(msg):
-    print(("EE: " + msg))
+    print(("EE: \033[1;31m" + msg +"\033[0m"))
 
 
 def checkprg(programmtofind, solutionhint):
     """
-    test if an executable can be found by 
+    test if an executable can be found by
     following $PATH
     raise message if fails and returns 1
     on success return 0
@@ -71,7 +71,7 @@ def checkprg(programmtofind, solutionhint):
     """
 
     ExitCode = os.system("which " + programmtofind)
-    
+
     if ExitCode == 0:
         printinfo(programmtofind + " found")
     else:
@@ -88,7 +88,7 @@ def checkfile(filetofind, solutionhint):
     """
 
     ExitCode = os.system("test -f " + filetofind)
-    
+
     if ExitCode == 0:
         printinfo(filetofind + " found")
     else:
@@ -105,7 +105,7 @@ def checkdir(dirtofind, solutionhint):
     """
 
     ExitCode = os.system("test -d " + dirtofind)
-    
+
     if ExitCode == 0:
         printinfo(dirtofind + " found")
     else:
@@ -114,8 +114,26 @@ def checkdir(dirtofind, solutionhint):
 
     return ExitCode
 
+def check_createdir(dirtofind):
+    """
+    test if a dir can be found  at a predefined place,
+    if not found, directory will be created
+    """
 
-    
+    ExitCode = os.path.isdir(dirtofind)
+
+    if ExitCode == True:
+        printinfo(dirtofind + " found")
+        return
+    elif ExitCode == False:
+        printinfo(dirtofind +" not found, to created ...")
+        os.mkdir(dirtofind)
+        print("done.")
+
+    return
+
+
+
 # VARs =============================================================================
 
 
@@ -126,11 +144,13 @@ def checkdir(dirtofind, solutionhint):
 """
 verbose = 1 ## default '= 1' an dieser Stelle
 
+userhome = os.environ['HOME']
+share = userhome + "/share"
+shareosm = share + "/osm"
+work_dir = shareosm + "/map_build/" # Der letzte Slash muss sein!!!
 
-work_dir = (os.environ['HOME'] + "/share/osm/map_build/") # Der letzte Slash muss sein!!!
-
-RAMSIZE_DEFAULT = "-Xmx4000M"
-MAXNODES_DEFAULT = "1000000"
+RAMSIZE_DEFAULT = "-Xmx2000M"
+MAXNODES_DEFAULT = "500000"
 
 BUILD_MAP_DEFAULT = "germany"
 
@@ -138,15 +158,15 @@ BUILD_MAP_DEFAULT = "germany"
 
 ## Progamme und Verzeichnisse suchen
 
-hint = ("mkdir " + (work_dir))
-checkdir((work_dir), hint) 
+#hint = ("mkdir " + (work_dir))
+#checkdir((work_dir), hint)
 
 hint = "Install: wine to work with gmt.exe from GMAPTOOLS"
 checkprg("wine", hint)
- 
+
 hint = " Download: http://www.anpo.republika.pl/download.html "
 checkprg("gmt.exe", hint)
- 
+
 hint = "Download:  http://tuxcode.org/john/osbsql2osm/osbsql2osm-latest.tar.gz"
 checkprg("osbsql2osm", hint)
 
@@ -156,61 +176,66 @@ checkprg("git", hint)
 hint = " osmosis fehlt, wird gebraucht zur Verarbeitung der *.pbf files! "
 checkprg("osmosis", hint)
 
-os.chdir(work_dir)
+#os.chdir(work_dir)
+#check_createdir('/home/carsten/share/osm/map_build/')
+check_createdir(share)
+check_createdir(shareosm)
+check_createdir(work_dir)
 
+exit
 
 if  verbose == 1:
-    print(""" 
-	  
-	   
+    print("""
+
+
 	        Bitte beachten!"
 	        Erstellen von Karten für einzelne Bundesländer ist nicht möglich,
 	        diese können über die AIO-Downloadseite gefunden werden.
-	   
-	  
+
+
 	        Mögliche Länder finden Sie unter http://download.geofabrik.de/osm/europe/.
-	        
+
 	        Bitte nur den Dateinamen ohne Endung!
-	  
+
     """)
     print("                Vorgabewert: ", (BUILD_MAP_DEFAULT))
     BUILD_MAP = input("                Bitte die gewünschte Karte eingeben: ")
-    
+
     if BUILD_MAP == "":
         BUILD_MAP = (BUILD_MAP_DEFAULT)
-    
+
     print("                Wahl:        ", BUILD_MAP)
 
-    print(""" 
-		
-		Abhängig vom vorhandenen RAM muß die Menge des Speichers 
+    print("""
+
+		Abhängig vom vorhandenen RAM muß die Menge des Speichers
 		für Java eingestellt werden.
 		Unter 1 GiB dürfte eine Kartenerstellung nicht möglich sein.
 		Empfohlen werden mindestens 2 GiB RAM!
-		
+
 		Standard bei 2 GiB RAM ist die Vorgabe von "-Xmx2000M"
-		
+
     """)
-    print("                Vorgabewert: ", (RAMSIZE_DEFAULT)) 
+    print("                Vorgabewert: ", (RAMSIZE_DEFAULT))
     RAMSIZE = input("                Wieviel Speicher soll verwendet werden? ")
 
     if RAMSIZE == "":
-        RAMSIZE = (RAMSIZE_DEFAULT)  
-    print("                Wahl:        ", (RAMSIZE)) 
+        RAMSIZE = (RAMSIZE_DEFAULT)
+    print("                Wahl:        ", (RAMSIZE))
 
-    print(""" 
-		
-		Bei kleineren Karten können die Werte für die MAXNODES bei Splitter eventuell 
-		heraufgesetzt werden, große Karten wie Deutschland und Frankreich sollten mit 
+    print("""
+
+		Bei kleineren Karten können die Werte für die MAXNODES bei Splitter eventuell
+		heraufgesetzt werden, große Karten wie Deutschland und Frankreich sollten mit
 		den folgenden Vorschlagswerten erstellt werden.
 
 		2 GiB (-Xmx2000M) -->	 500000
 		4+GiB (-Xmx3000M) -->	1000000
-		
-    """)       
+
+    """)
     print("                Vorgabewert: ", (MAXNODES_DEFAULT))
     MAXNODES = input("                Bitte Anzahl der gewünschten Nodes eingeben: ")
-    
+
     if MAXNODES == "":
         MAXNODES = (MAXNODES_DEFAULT)
 
@@ -219,7 +244,7 @@ if  verbose == 1:
 
 
 ##  get mkgmap and splitter
-  
+
 
 target = http.client.HTTPConnection("www.mkgmap.org.uk")
 
@@ -242,31 +267,31 @@ splitter_rev = sorted(pattern.findall(data), reverse=True)[1]
 
 target.close()
 
-os.system(("wget -N http://www.mkgmap.org.uk/snapshots/") + (mkgmap_rev) + (".tar.gz"))  
+os.system(("wget -N http://www.mkgmap.org.uk/snapshots/") + (mkgmap_rev) + (".tar.gz -P ") + (work_dir))
 
 tar = tarfile.open((work_dir) + (mkgmap_rev) + (".tar.gz"))
-tar.extractall()
+tar.extractall(work_dir)
 tar.close()
-    
+
 mkgmap = (work_dir) + (mkgmap_rev) + "/mkgmap.jar"
 
 
-os.system(("wget -N http://www.mkgmap.org.uk/splitter/") + (splitter_rev) + (".tar.gz"))
+os.system(("wget -N http://www.mkgmap.org.uk/splitter/") + (splitter_rev) + (".tar.gz -P ") + (work_dir))
 
 tar = tarfile.open((work_dir) + (splitter_rev) + (".tar.gz"))
-tar.extractall()
-tar.close()    
-    
+tar.extractall(work_dir)
+tar.close()
+
 splitter = ((work_dir) + (splitter_rev) + "/splitter.jar")
 
-    
- 
-""" 
+
+
+"""
   get the contourlines for Germany, if not present
   other countries could be found at openmtb.org
   please build the gmapsupp.img for every country in own folders and store it
   in hoehenlinien/(buildmap)/gmapsupp.img
-  
+
 """
 if (BUILD_MAP) == "germany":
     ExitCode  = os.system("test -d gcontourlines")
@@ -283,15 +308,15 @@ if (BUILD_MAP) == "germany":
         os.system("rm -Rf temp")
         os.chdir(work_dir)
 
-""" 
+"""
   Styles-Vorlagen werden von GIT-Server der AIO-Karte geholt
   Aktualisierungen erfolgen automatisch
-  Eine Rückfallebene ist sinnvoll, da die AIO-Styles nicht immer in Ordnung sind, 
+  Eine Rückfallebene ist sinnvoll, da die AIO-Styles nicht immer in Ordnung sind,
   mögliches Verzeichnis mystyles, wird verwendet, wenn vorhanden.
-"""   
-   
+"""
+
 ExitCode = os.system("test -d aiostyles")
-    
+
 if ExitCode == 0:
     os.chdir("aiostyles")
     os.system("git pull")
@@ -300,17 +325,19 @@ if ExitCode == 0:
 else:
     os.system("git clone git://github.com/aiomaster/aiostyles.git")
     os.chdir(work_dir)
- 
-""" 
-  Das Dumpfile für die OpenStreetBugs wird geholt. 
-  
-"""  
+
+"""
+  Das Dumpfile für die OpenStreetBugs wird geholt.
+
+"""
 ExitCode = os.system("which osbsql2osm")
 if ExitCode == 0:
     os.system("wget -N http://openstreetbugs.schokokeks.org/dumps/osbdump_latest.sql.bz2")
     os.system("bzcat osbdump_latest.sql.bz2 | osbsql2osm > OpenStreetBugs.osm")
 else:
-    os.system("wget -N http://www.gary68.de/osm/qa/gpx/allbugs.gpx --output-document=OpenStreetBugs.gpx")
+    printinfo("hole allbugs.gpx ...")
+    #os.system("wget -N http://www.gary68.de/osm/qa/gpx/allbugs.gpx --output-document=OpenStreetBugs.gpx")
+    printinfo("wandle allbugs.gpx in *.osm ...")
     os.system("gpsbabel -i gpx -o osm OpenStreetBugs.gpx OpenStreetBugs.osm")
 
 
@@ -325,26 +352,28 @@ if ExitCode == 0:
 ExitCode = os.system("which osmosis")
 
 if ExitCode == 0:
+    printinfo("hole osm.pbf ...")
     os.system("wget -N http://download.geofabrik.de/osm/europe/" + (BUILD_MAP) + ".osm.pbf")
-    os.system("osmosis --read-bin " + (BUILD_MAP) + ".osm.pbf --write-xml " + (BUILD_MAP) + ".osm")
+    printinfo("entpacke osm.pbf ...")
+    os.system("osmosis --rb " + (work_dir) + "/" + (BUILD_MAP) + ".osm.pbf --write-xml " + (work_dir) + "/" + (BUILD_MAP) + ".osm")
 
 else:
-    os.system("wget -N http://download.geofabrik.de/osm/europe/" + (BUILD_MAP) + ".osm.bz2")   
+    os.system("wget -N http://download.geofabrik.de/osm/europe/" + (BUILD_MAP) + ".osm.bz2")
     os.system("bunzip2 -k " + (BUILD_MAP) + ".osm.bz2")
 
 
 ##  Arbeitsverzeichnis für Splitter wird erstellt...
- 
+
 ExitCode = os.system("test -d tiles")
 
 if ExitCode == 0:
     os.chdir("tiles")
     os.system("rm -Rf *")
     os.chdir(work_dir)
-	  
-else: 
+
+else:
     os.mkdir("tiles")
-             
+
 ## Splitten der Kartendaten, damit mkgmap damit arbeiten kann
 
 os.chdir("tiles")
@@ -357,10 +386,10 @@ for dir in ['gfixme', 'gosb', 'gvelomap', 'gbasemap', 'gaddr', 'gmaxspeed', 'gbo
     ExitCode = os.system("test -d " + (dir))
     if ExitCode != 0:
       os.mkdir(dir)
-      
-""" 
-  Erstellen der Bugs- und FIXME-Layer 
- 
+
+"""
+  Erstellen der Bugs- und FIXME-Layer
+
 
   Die Optionen für MKGMAP sind in externe Dateien ausgelagert
 
@@ -371,24 +400,24 @@ for dir in ['gfixme', 'gosb', 'gvelomap', 'gbasemap', 'gaddr', 'gmaxspeed', 'gbo
 """
 os.system("rm -Rf gfixme/* gosb/* ")
 
-## add your own styles in mystyles 
+## add your own styles in mystyles
 ExitCode = os.system("test -d mystyles/fixme_style")
-    
-if ExitCode == 0:    
+
+if ExitCode == 0:
     mapstyle_fixme = "mystyles"
 else:
-    mapstyle_fixme = "aiostyles" 
+    mapstyle_fixme = "aiostyles"
 
-print(mapstyle_fixme) 
+print(mapstyle_fixme)
 
 ExitCode = os.system("test -d mystyles/osb_style")
-    
-if ExitCode == 0:    
+
+if ExitCode == 0:
     mapstyle_osb = "mystyles"
 else:
-    mapstyle_osb = "aiostyles" 
+    mapstyle_osb = "aiostyles"
 
-print(mapstyle_osb) 
+print(mapstyle_osb)
 
 
 os.chdir("gfixme")
@@ -402,20 +431,20 @@ print(os.getcwd())
 os.system("java -ea " + (RAMSIZE) + " -jar " + (mkgmap) + " -c " + (work_dir) + "fixme_buglayer.conf --style-file=" + (work_dir) + (mapstyle_osb) + "/osb_style --description='OSB' --family-id=2323 --product-id=42 --series-name='OSMBugs' --family-name=OSMBugs --mapname=63243023 --draw-priority=22 " + (work_dir) + "OpenStreetBugs.osm " + (work_dir) + (mapstyle_osb) + "/osb.TYP")
 
 os.chdir(work_dir)
- 
- 
+
+
 ## Erstellen des Velomap-Layers
 
 ExitCode = os.system("test -d mystyles/velomap_style")
-    
-if ExitCode == 0:    
+
+if ExitCode == 0:
     mapstyle_velo = "mystyles"
 else:
-    mapstyle_velo = "aiostyles" 
+    mapstyle_velo = "aiostyles"
 
-print(mapstyle_velo) 
+print(mapstyle_velo)
 
-os.system("rm -Rf gvelomap/* ") 
+os.system("rm -Rf gvelomap/* ")
 
 os.chdir("gvelomap")
 print(os.getcwd())
@@ -436,18 +465,18 @@ elif (BUILD_MAP) != "germany":
         os.system("wine ~/bin/gmt.exe -jo gmapsupp.img gvelomap/gmapsupp.img gosb/gmapsupp.img gfixme/gmapsupp.img hoehenlinien/" + (BUILD_MAP) + "/gmapsupp.img")
     else:
         os.system("wine ~/bin/gmt.exe -jo gmapsupp.img gvelomap/gmapsupp.img gosb/gmapsupp.img gfixme/gmapsupp.img")
-        
+
 os.system("cp gmapsupp.img " + (work_dir) + (BUILD_MAP) + "_gmapsupp.img")
 
 
 printinfo("Habe fertig!")
 
-""" 
- 
+"""
+
 ## Changelog:
 v0.7.1- minor fixes
 
-v0.7.0- download *.pbf (osmosis) or *.bz2, check osbsql2osm 
+v0.7.0- download *.pbf (osmosis) or *.bz2, check osbsql2osm
 
 v0.6.8- Cleanups
 
