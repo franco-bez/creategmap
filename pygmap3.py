@@ -245,7 +245,7 @@ if  verbose == 1:
 
 ##  get mkgmap and splitter
 
-
+printinfo("suche mkgmap ...")
 target = http.client.HTTPConnection("www.mkgmap.org.uk")
 
 target.request("GET", "/snapshots/index.html")
@@ -256,7 +256,7 @@ data = data.decode('utf8')
 pattern = re.compile('mkgmap-r\d{4}')
 mkgmap_rev = sorted(pattern.findall(data), reverse=True)[1]
 
-
+printinfo("suche splitter ...")
 target.request("GET", "/splitter/index.html")
 htmlcontent =  target.getresponse()
 print(htmlcontent.status, htmlcontent.reason)
@@ -267,17 +267,20 @@ splitter_rev = sorted(pattern.findall(data), reverse=True)[1]
 
 target.close()
 
+printinfo("hole mkgmap ...")
 os.system(("wget -N http://www.mkgmap.org.uk/snapshots/") + (mkgmap_rev) + (".tar.gz -P ") + (work_dir))
 
+printinfo("entpacke mkgmap ...")
 tar = tarfile.open((work_dir) + (mkgmap_rev) + (".tar.gz"))
 tar.extractall(work_dir)
 tar.close()
 
 mkgmap = (work_dir) + (mkgmap_rev) + "/mkgmap.jar"
 
-
+printinfo("hole splitter ...")
 os.system(("wget -N http://www.mkgmap.org.uk/splitter/") + (splitter_rev) + (".tar.gz -P ") + (work_dir))
 
+printinfo("entpacke splitter ...")
 tar = tarfile.open((work_dir) + (splitter_rev) + (".tar.gz"))
 tar.extractall(work_dir)
 tar.close()
@@ -301,6 +304,7 @@ if (BUILD_MAP) == "germany":
         os.chdir("gcontourlines")
         os.mkdir("temp")
         os.chdir("temp")
+        printinfo("hole TOPO Daten ...")
         os.system("wget -N http://www.glade-web.de/GLADE_geocaching/maps/TOPO_D_SRTM.zip")
         os.system("unzip Topo_D_SRTM.zip")
         os.system("wine ~/bin/gmt.exe -j -f 5,25 -m HOEHE -o ../gmapsupp.img Topo\ D\ SRTM/*.img")
@@ -315,6 +319,7 @@ if (BUILD_MAP) == "germany":
   mögliches Verzeichnis mystyles, wird verwendet, wenn vorhanden.
 """
 
+printinfo("suche aiostyles ...")
 ExitCode = os.system("test -d aiostyles")
 
 if ExitCode == 0:
@@ -339,12 +344,13 @@ else:
     #os.system("wget -N http://www.gary68.de/osm/qa/gpx/allbugs.gpx --output-document=OpenStreetBugs.gpx")
     printinfo("wandle allbugs.gpx in *.osm ...")
     os.system("gpsbabel -i gpx -o osm OpenStreetBugs.gpx OpenStreetBugs.osm")
+    printinfo("erledigt")
 
 
 
 # Entfernen alter Daten und Download der OSM-Kartendaten von der Geofabrik
 
-ExitCode = os.system("test -f " + (BUILD_MAP) + ".osm")
+#ExitCode = os.system("test -f " + (BUILD_MAP) + ".osm")
 
 if ExitCode == 0:
     os.remove((BUILD_MAP) + ".osm")
@@ -355,7 +361,10 @@ if ExitCode == 0:
     printinfo("hole osm.pbf ...")
     os.system("wget -N http://download.geofabrik.de/osm/europe/" + (BUILD_MAP) + ".osm.pbf")
     printinfo("entpacke osm.pbf ...")
-    os.system("osmosis --rb " + (work_dir) + "/" + (BUILD_MAP) + ".osm.pbf --write-xml " + (work_dir) + "/" + (BUILD_MAP) + ".osm")
+    ret = os.system("osmosis --rb " + (work_dir) + "/" + (BUILD_MAP) + ".osm.pbf --write-xml " + (work_dir) + "/" + (BUILD_MAP) + ".osm")
+    if ret != 0:
+        printwarning("Osmosis failed!")
+        exit
 
 else:
     os.system("wget -N http://download.geofabrik.de/osm/europe/" + (BUILD_MAP) + ".osm.bz2")
